@@ -506,10 +506,7 @@ async function callGeminiAPI(base64Data, mimeType) {
           }
         ]
       }
-    ],
-    generationConfig: {
-      responseMimeType: "application/json"
-    }
+    ]
   };
 
   const response = await fetch(url, {
