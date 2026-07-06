@@ -2,19 +2,16 @@
  * EcoScan - AI Trash Scanner Web Application
  * main.js - Core functionality (Camera, File upload, Gemini API integration, and History management)
  */
-
 // --- Constants & State ---
 let cameraStream = null;
 let activeImageBase64 = null; // Stores the base64 string of the current captured/uploaded image (without data URL prefix)
 let activeImageMimeType = null; // Stores mimeType (e.g., 'image/jpeg')
-
 const APP_STATE = {
   activeTab: 'camera', // 'camera' | 'upload'
   apiKey: localStorage.getItem('ecoscan_gemini_api_key') || '',
   isDemoMode: localStorage.getItem('ecoscan_demo_mode') === 'true',
   history: JSON.parse(localStorage.getItem('ecoscan_history')) || []
 };
-
 // --- Mock Data for Demo Mode ---
 const MOCK_SCAN_RESULTS = [
   {
@@ -108,7 +105,6 @@ const MOCK_SCAN_RESULTS = [
     carbon_saved: 0.05
   }
 ];
-
 // --- DOM Elements ---
 const videoStreamEl = document.getElementById('video-stream');
 const cameraPlaceholderEl = document.querySelector('.camera-placeholder');
@@ -121,23 +117,19 @@ const btnSelectFile = document.getElementById('btn-select-file');
 const dropZone = document.getElementById('drop-zone');
 const previewImage = document.getElementById('preview-image');
 const scannerLaser = document.getElementById('scanner-laser');
-
 const cameraView = document.getElementById('camera-view');
 const uploadView = document.getElementById('upload-view');
 const previewView = document.getElementById('preview-view');
 const cameraControls = document.getElementById('camera-controls');
 const reviewControls = document.getElementById('review-controls');
-
 const tabCamera = document.getElementById('tab-camera');
 const tabUpload = document.getElementById('tab-upload');
-
 const stateIdle = document.getElementById('state-idle');
 const stateLoading = document.getElementById('state-loading');
 const stateResult = document.getElementById('state-result');
 const stateError = document.getElementById('state-error');
 const errorMessageEl = document.getElementById('error-message');
 const btnErrorRetry = document.getElementById('btn-error-retry');
-
 const resCategory = document.getElementById('res-category');
 const resConfidence = document.getElementById('res-confidence');
 const resName = document.getElementById('res-name');
@@ -147,7 +139,6 @@ const resEcoTipWrapper = document.getElementById('res-eco-tip-wrapper');
 const resWarning = document.getElementById('res-warning');
 const resWarningWrapper = document.getElementById('res-warning-wrapper');
 const resCarbon = document.getElementById('res-carbon');
-
 const btnApiSettings = document.getElementById('btn-api-settings');
 const apiModal = document.getElementById('api-modal');
 const btnCloseModal = document.getElementById('btn-close-modal');
@@ -156,13 +147,11 @@ const inputApiKey = document.getElementById('input-api-key');
 const btnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
 const iconEye = document.getElementById('icon-eye');
 const checkboxDemoMode = document.getElementById('checkbox-demo-mode');
-
 const btnClearHistory = document.getElementById('btn-clear-history');
 const statTotalScans = document.getElementById('stat-total-scans');
 const statCarbonSaved = document.getElementById('stat-carbon-saved');
 const historyEmpty = document.getElementById('history-empty');
 const historyList = document.getElementById('history-list');
-
 // --- Initialization ---
 function init() {
   lucide.createIcons();
@@ -173,36 +162,30 @@ function init() {
   
   // Update key visibility icon on load
   updateEyeIcon();
-
   // If no API key and not in demo mode, show settings modal automatically to nudge the user
   if (!APP_STATE.apiKey && !APP_STATE.isDemoMode) {
     setTimeout(() => {
       openSettingsModal();
     }, 800);
   }
-
   // Bind Event Listeners
   bindEvents();
   
   // Render Scan History
   renderHistory();
 }
-
 // --- Event Handlers & Binding ---
 function bindEvents() {
   // Tab switches
   tabCamera.addEventListener('click', () => switchTab('camera'));
   tabUpload.addEventListener('click', () => switchTab('upload'));
-
   // Camera Actions
   btnStartCamera.addEventListener('click', startCamera);
   btnCapture.addEventListener('click', capturePhoto);
   btnResetPreview.addEventListener('click', resetToActiveTab);
-
   // Upload Actions
   btnSelectFile.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', handleFileSelect);
-
   // Drag and drop for upload zone
   ['dragenter', 'dragover'].forEach(eventName => {
     dropZone.addEventListener(eventName, (e) => {
@@ -210,20 +193,16 @@ function bindEvents() {
       dropZone.classList.add('dragover');
     }, false);
   });
-
   ['dragleave', 'drop'].forEach(eventName => {
     dropZone.addEventListener(eventName, (e) => {
       e.preventDefault();
       dropZone.classList.remove('dragover');
     }, false);
   });
-
   dropZone.addEventListener('drop', handleFileDrop, false);
-
   // Analysis Trigger
   btnAnalyze.addEventListener('click', startAnalysis);
   btnErrorRetry.addEventListener('click', startAnalysis);
-
   // Modal Dialog Actions
   btnApiSettings.addEventListener('click', openSettingsModal);
   btnCloseModal.addEventListener('click', closeSettingsModal);
@@ -234,11 +213,9 @@ function bindEvents() {
   apiModal.addEventListener('click', (e) => {
     if (e.target === apiModal) closeSettingsModal();
   });
-
   // History Actions
   btnClearHistory.addEventListener('click', clearAllHistory);
 }
-
 // --- UI Navigation & Tabs ---
 function switchTab(tabName) {
   if (APP_STATE.activeTab === tabName) return;
@@ -246,10 +223,8 @@ function switchTab(tabName) {
   APP_STATE.activeTab = tabName;
   tabCamera.classList.toggle('active', tabName === 'camera');
   tabUpload.classList.toggle('active', tabName === 'upload');
-
   resetToActiveTab();
 }
-
 function resetToActiveTab() {
   // Stop existing camera stream if we switch away or reset
   stopCamera();
@@ -273,23 +248,19 @@ function resetToActiveTab() {
     cameraView.classList.remove('active');
     fileInput.value = ''; // Reset file input
   }
-
   // Restore results view state to idle/welcome if it was in error/results
   setResultState('idle');
 }
-
 function setResultState(state) {
   stateIdle.classList.toggle('active', state === 'idle');
   stateLoading.classList.toggle('active', state === 'loading');
   stateResult.classList.toggle('active', state === 'result');
   stateError.classList.toggle('active', state === 'error');
 }
-
 // --- Camera Logic ---
 async function startCamera() {
   cameraPlaceholderEl.style.display = 'none';
   btnCapture.disabled = true;
-
   const constraints = {
     video: {
       facingMode: { ideal: "environment" }, // Prefer rear camera on mobile
@@ -298,7 +269,6 @@ async function startCamera() {
     },
     audio: false
   };
-
   try {
     if (cameraStream) {
       stopCamera();
@@ -315,7 +285,6 @@ async function startCamera() {
     btnCapture.disabled = true;
   }
 }
-
 function stopCamera() {
   if (cameraStream) {
     cameraStream.getTracks().forEach(track => track.stop());
@@ -323,10 +292,8 @@ function stopCamera() {
   }
   videoStreamEl.srcObject = null;
 }
-
 function capturePhoto() {
   if (!cameraStream) return;
-
   // Create temporary canvas to draw video frame
   const canvas = document.createElement('canvas');
   canvas.width = videoStreamEl.videoWidth || 640;
@@ -344,57 +311,47 @@ function capturePhoto() {
   // Stop camera to release hardware resource
   stopCamera();
 }
-
 // --- File Handling Logic ---
 function handleFileSelect(e) {
   const file = e.target.files[0];
   processUploadedFile(file);
 }
-
 function handleFileDrop(e) {
   const file = e.dataTransfer.files[0];
   processUploadedFile(file);
 }
-
 function processUploadedFile(file) {
   if (!file || !file.type.startsWith('image/')) {
     alert("이미지 파일만 선택할 수 있습니다.");
     return;
   }
-
   const reader = new FileReader();
   reader.onload = (event) => {
     showImagePreview(event.target.result, file.type);
   };
   reader.readAsDataURL(file);
 }
-
 function showImagePreview(dataUrl, mimeType) {
   previewImage.src = dataUrl;
   
   // Save base64 chunk without the prefix "data:image/jpeg;base64,"
   activeImageBase64 = dataUrl.split(',')[1];
   activeImageMimeType = mimeType;
-
   // Switch viewer container content to preview
   cameraView.classList.remove('active');
   uploadView.classList.remove('active');
   previewView.classList.add('active');
-
   // Toggle controls to show 'AI Analyze'
   cameraControls.classList.remove('active');
   reviewControls.classList.add('active');
 }
-
 // --- Settings Modal Logic ---
 function openSettingsModal() {
   apiModal.classList.add('active');
 }
-
 function closeSettingsModal() {
   apiModal.classList.remove('active');
 }
-
 function toggleKeyVisibility() {
   if (inputApiKey.type === 'password') {
     inputApiKey.type = 'text';
@@ -403,7 +360,6 @@ function toggleKeyVisibility() {
   }
   updateEyeIcon();
 }
-
 function updateEyeIcon() {
   if (inputApiKey.type === 'password') {
     iconEye.setAttribute('data-lucide', 'eye');
@@ -412,37 +368,28 @@ function updateEyeIcon() {
   }
   lucide.createIcons();
 }
-
 function saveSettings() {
   const key = inputApiKey.value.trim();
   const demo = checkboxDemoMode.checked;
-
   APP_STATE.apiKey = key;
   APP_STATE.isDemoMode = demo;
-
   localStorage.setItem('ecoscan_gemini_api_key', key);
   localStorage.setItem('ecoscan_demo_mode', demo ? 'true' : 'false');
-
   closeSettingsModal();
 }
-
 // --- Gemini AI & Analysis Logic ---
 async function startAnalysis() {
   if (!activeImageBase64) return;
-
   // Check key if not in demo mode
   if (!APP_STATE.isDemoMode && !APP_STATE.apiKey) {
     alert("Gemini API 설정에서 API 키를 입력하거나 데모 모드를 활성화해 주세요.");
     openSettingsModal();
     return;
   }
-
   setResultState('loading');
   scannerLaser.classList.add('scanning');
-
   try {
     let result = null;
-
     if (APP_STATE.isDemoMode) {
       // Simulate API latency
       result = await simulateDemoAnalysis();
@@ -450,7 +397,6 @@ async function startAnalysis() {
       // Direct call to Gemini API
       result = await callGeminiAPI(activeImageBase64, activeImageMimeType);
     }
-
     displayResult(result);
     saveToHistory(result);
   } catch (error) {
@@ -461,7 +407,6 @@ async function startAnalysis() {
     scannerLaser.classList.remove('scanning');
   }
 }
-
 async function simulateDemoAnalysis() {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -471,10 +416,8 @@ async function simulateDemoAnalysis() {
     }, 2000);
   });
 }
-
 async function callGeminiAPI(base64Data, mimeType) {
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-3-flash:generateContent?key=${APP_STATE.apiKey}`;
-
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${APP_STATE.apiKey}`;
   const promptText = `
     Identify the waste/trash item in this image. 
     Analyze its material structure and output a strict JSON structure containing the details.
@@ -489,10 +432,8 @@ async function callGeminiAPI(base64Data, mimeType) {
       "warning": "Additional safety warning (Korean) if applicable (e.g. gas venting warnings for butane cans, sharp glass warning, battery safety, etc.). Leave empty string if none.",
       "carbon_saved": 0.15 // float representing estimated CO2 saved (kg) by recycling this item correctly, range between 0.05 and 0.50
     }
-
     Do not include any markdown format tags like \`\`\`json or \`\`\` around the output. Output ONLY the JSON block.
   `;
-
   const payload = {
     contents: [
       {
@@ -506,9 +447,11 @@ async function callGeminiAPI(base64Data, mimeType) {
           }
         ]
       }
-    ]
+    ],
+    generationConfig: {
+      responseMimeType: "application/json"
+    }
   };
-
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -516,13 +459,11 @@ async function callGeminiAPI(base64Data, mimeType) {
     },
     body: JSON.stringify(payload)
   });
-
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     const message = errorData.error?.message || `HTTP error! status: ${response.status}`;
     throw new Error(`Gemini API 요청 실패: ${message}`);
   }
-
   const responseData = await response.json();
   
   try {
@@ -534,7 +475,6 @@ async function callGeminiAPI(base64Data, mimeType) {
     throw new Error("Gemini 응답 구조 분석 실패: 올바른 JSON 포맷을 반환하지 못했습니다.");
   }
 }
-
 function displayResult(result) {
   // Translate categories to Korean label
   const categoryNames = {
@@ -547,15 +487,12 @@ function displayResult(result) {
     food: '음식물쓰레기',
     hazardous: '폐기물/유해물'
   };
-
   // Map classes to badge
   resCategory.className = 'category-badge';
   resCategory.classList.add(`cat-${result.category}`);
   resCategory.textContent = categoryNames[result.category] || result.category.toUpperCase();
-
   resConfidence.textContent = result.confidence || '90%';
   resName.textContent = result.waste_name;
-
   // Build bulleted lists of instructions
   resInstructions.innerHTML = '';
   if (Array.isArray(result.disposal_instructions)) {
@@ -565,7 +502,6 @@ function displayResult(result) {
       resInstructions.appendChild(li);
     });
   }
-
   // Eco Tip
   if (result.eco_tip) {
     resEcoTipWrapper.style.display = 'block';
@@ -573,7 +509,6 @@ function displayResult(result) {
   } else {
     resEcoTipWrapper.style.display = 'none';
   }
-
   // Warning
   if (result.warning) {
     resWarningWrapper.style.display = 'block';
@@ -581,15 +516,12 @@ function displayResult(result) {
   } else {
     resWarningWrapper.style.display = 'none';
   }
-
   // Carbon reduction
   resCarbon.textContent = `${result.carbon_saved || 0.1}kg`;
-
   // Render view state
   setResultState('result');
   lucide.createIcons();
 }
-
 // --- History Management Logic ---
 function saveToHistory(result) {
   const historyItem = {
@@ -603,7 +535,6 @@ function saveToHistory(result) {
     carbon_saved: result.carbon_saved || 0.1,
     date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
   };
-
   // Store in state (prepend so latest is first)
   APP_STATE.history.unshift(historyItem);
   
@@ -611,11 +542,9 @@ function saveToHistory(result) {
   if (APP_STATE.history.length > 50) {
     APP_STATE.history.pop();
   }
-
   localStorage.setItem('ecoscan_history', JSON.stringify(APP_STATE.history));
   renderHistory();
 }
-
 function renderHistory() {
   const history = APP_STATE.history;
   
@@ -624,17 +553,14 @@ function renderHistory() {
   
   const totalCarbon = history.reduce((acc, item) => acc + (item.carbon_saved || 0), 0);
   statCarbonSaved.textContent = `${totalCarbon.toFixed(2)} kg`;
-
   if (history.length === 0) {
     historyEmpty.style.display = 'block';
     historyList.style.display = 'none';
     return;
   }
-
   historyEmpty.style.display = 'none';
   historyList.style.display = 'flex';
   historyList.innerHTML = '';
-
   const categoryNames = {
     plastic: '플라스틱',
     paper: '종이류',
@@ -645,7 +571,6 @@ function renderHistory() {
     food: '음식물',
     hazardous: '유해물'
   };
-
   history.forEach(item => {
     const li = document.createElement('li');
     li.className = 'history-item';
@@ -664,31 +589,25 @@ function renderHistory() {
         </button>
       </div>
     `;
-
     // Click on history item loads it to result card
     li.addEventListener('click', (e) => {
       // Don't trigger load if clicking delete button
       if (e.target.closest('.btn-icon-delete')) return;
       loadHistoryItem(item.id);
     });
-
     // Wire delete button
     const deleteBtn = li.querySelector('.btn-icon-delete');
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevents loading the item
       deleteHistoryItem(item.id);
     });
-
     historyList.appendChild(li);
   });
-
   lucide.createIcons();
 }
-
 function loadHistoryItem(id) {
   const item = APP_STATE.history.find(h => h.id === id);
   if (!item) return;
-
   // Emulate loading the specific item into the display
   displayResult({
     waste_name: item.waste_name,
@@ -700,13 +619,11 @@ function loadHistoryItem(id) {
     carbon_saved: item.carbon_saved
   });
 }
-
 function deleteHistoryItem(id) {
   APP_STATE.history = APP_STATE.history.filter(h => h.id !== id);
   localStorage.setItem('ecoscan_history', JSON.stringify(APP_STATE.history));
   renderHistory();
 }
-
 function clearAllHistory() {
   if (APP_STATE.history.length === 0) return;
   if (confirm("정말로 모든 스캔 기록을 삭제하시겠습니까? 탄소 저감량 기록도 초기화됩니다.")) {
@@ -715,6 +632,5 @@ function clearAllHistory() {
     renderHistory();
   }
 }
-
 // --- Start the App ---
 document.addEventListener('DOMContentLoaded', init);
