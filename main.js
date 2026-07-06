@@ -473,7 +473,7 @@ async function simulateDemoAnalysis() {
 }
 
 async function callGeminiAPI(base64Data, mimeType) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${APP_STATE.apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${APP_STATE.apiKey}`;
 
   const promptText = `
     Identify the waste/trash item in this image. 
