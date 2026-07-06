@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI 기반 쓰레기 분리배출 가이드 앱 - 카메라로 찍고 간편하게 분리배출 요령을 확인하세요.">
+  <title>EcoScan - AI 쓰레기 분리배출 가이드</title>
+  
+  <!-- Google Fonts: Outfit, Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <i data-lucide="leaf" class="brand-icon"></i>
+        <h1>EcoScan <span class="brand-sub">에코스캔</span></h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-api-settings" class="btn btn-secondary" title="API 설정">
+          <i data-lucide="key"></i>
+          <span>Gemini API 설정</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Grid Layout for Mobile & Desktop -->
+      <div class="dashboard-grid">
+        
+        <!-- Left Side: Camera & Scanner -->
+        <section class="card scanner-section" aria-labelledby="scanner-heading">
+          <h2 id="scanner-heading" class="sr-only">카메라 및 이미지 업로드</h2>
+          
+          <!-- Mode Tabs -->
+          <div class="tab-container">
+            <button id="tab-camera" class="tab-btn active">
+              <i data-lucide="camera"></i>
+              <span>카메라 촬영</span>
+            </button>
+            <button id="tab-upload" class="tab-btn">
+              <i data-lucide="image"></i>
+              <span>이미지 업로드</span>
+            </button>
+          </div>
+
+          <!-- Screen / Viewer -->
+          <div class="viewer-container">
+            <!-- Live Camera Feed -->
+            <div id="camera-view" class="viewer-content active">
+              <video id="video-stream" autoplay playsinline muted></video>
+              <div class="camera-placeholder">
+                <i data-lucide="camera-off" class="placeholder-icon"></i>
+                <p>카메라가 꺼져 있습니다.</p>
+                <button id="btn-start-camera" class="btn btn-primary">
+                  <i data-lucide="video"></i>카메라 시작하기
+                </button>
+              </div>
+            </div>
+
+            <!-- Upload Drop Zone -->
+            <div id="upload-view" class="viewer-content">
+              <div id="drop-zone" class="drop-zone">
+                <i data-lucide="upload-cloud" class="upload-icon"></i>
+                <p class="drop-zone-text">이미지를 드래그하여 놓거나 클릭하여 선택하세요</p>
+                <input type="file" id="file-input" accept="image/*" class="sr-only">
+                <button id="btn-select-file" class="btn btn-outline">파일 선택</button>
+              </div>
+            </div>
+
+            <!-- Captured / Uploaded Image Review Mode -->
+            <div id="preview-view" class="viewer-content">
+              <img id="preview-image" src="" alt="스캔할 쓰레기 이미지">
+              <button id="btn-reset-preview" class="btn-circle btn-danger-circle" title="다시 찍기">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+
+            <!-- Scanner Laser Animation Effect Overlay -->
+            <div id="scanner-laser" class="scanner-laser"></div>
+          </div>
+
+          <!-- Action Controls for Scanner -->
+          <div class="scanner-controls">
+            <!-- Camera mode action buttons -->
+            <div id="camera-controls" class="control-group active">
+              <button id="btn-capture" class="btn btn-primary btn-large btn-capture" disabled>
+                <i data-lucide="aperture"></i>
+                <span>스캔하기 (촬영)</span>
+              </button>
+            </div>
+
+            <!-- Review Mode action buttons (when image is captured or uploaded) -->
+            <div id="review-controls" class="control-group">
+              <button id="btn-analyze" class="btn btn-success btn-large">
+                <i data-lucide="scan-line"></i>
+                <span>AI 분리배출 분석 시작</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Side: Analysis Results & Status -->
+        <section class="card results-section" aria-labelledby="results-heading">
+          <h2 id="results-heading" class="section-title">
+            <i data-lucide="clipboard-list" class="title-icon"></i>분석 결과
+          </h2>
+
+          <div class="results-viewport">
+            <!-- State 1: Idle/Welcome -->
+            <div id="state-idle" class="result-state active">
+              <div class="welcome-container">
+                <div class="icon-pulse">
+                  <i data-lucide="scan" class="welcome-icon"></i>
+                </div>
+                <h3>쓰레기 스캔 대기 중</h3>
+                <p>왼쪽 화면에서 카메라로 사진을 찍거나 이미지를 업로드한 후, <strong>[AI 분리배출 분석 시작]</strong>을 눌러주세요.</p>
+                
+                <div class="quick-tips">
+                  <h4>💡 정확한 분석을 위한 팁</h4>
+                  <ul>
+                    <li>쓰레기가 화면 중앙에 오도록 찍어주세요.</li>
+                    <li>이물질이 묻어있다면 먼저 헹궈주시는 것이 좋습니다.</li>
+                    <li>어두운 곳보다 밝은 조명 아래서 찍어야 잘 분석됩니다.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- State 2: Analyzing (Spinner & Laser) -->
+            <div id="state-loading" class="result-state">
+              <div class="loading-container">
+                <div class="loader-ring"></div>
+                <div class="loader-status">
+                  <h3>쓰레기 이미지 분석 중...</h3>
+                  <p id="loading-text">Gemini AI가 재질을 판별하고 있습니다.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- State 3: Scanned Results Card -->
+            <div id="state-result" class="result-state">
+              <div class="result-card">
+                <!-- Main Header (Category & Confidence) -->
+                <div class="result-header">
+                  <div class="category-badge-wrapper">
+                    <span id="res-category" class="category-badge">플라스틱</span>
+                  </div>
+                  <div class="confidence-wrapper">
+                    <span class="conf-label">신뢰도</span>
+                    <span id="res-confidence" class="conf-value">95%</span>
+                  </div>
+                </div>
+
+                <!-- Product Name -->
+                <div class="result-item-name">
+                  <h3 id="res-name">투명 페트병</h3>
+                </div>
+
+                <!-- Disposal Instructions Card -->
+                <div class="result-block">
+                  <h4><i data-lucide="info"></i> 분리배출 방법</h4>
+                  <ul id="res-instructions" class="instruction-list">
+                    <!-- Dynamic List -->
+                  </ul>
+                </div>
+
+                <!-- Eco Tip Card -->
+                <div id="res-eco-tip-wrapper" class="result-block block-eco">
+                  <h4><i data-lucide="sparkles"></i> 에코 친환경 팁</h4>
+                  <p id="res-eco-tip">페트병은 라벨을 제거한 후 깨끗이 씻어 압축해서 배출하면 재생 플라스틱 원료로서 가치가 훨씬 커집니다.</p>
+                </div>
+
+                <!-- Warning Card if hazardous / special disposal -->
+                <div id="res-warning-wrapper" class="result-block block-warning">
+                  <h4><i data-lucide="alert-triangle"></i> 주의사항</h4>
+                  <p id="res-warning"></p>
+                </div>
+
+                <div class="carbon-saved-badge">
+                  <i data-lucide="leaf"></i>
+                  <span>이 분리배출로 약 <strong id="res-carbon">0.15kg</strong>의 CO₂ 배출을 줄였습니다!</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- State 4: Error State -->
+            <div id="state-error" class="result-state">
+              <div class="error-container">
+                <i data-lucide="alert-circle" class="error-icon"></i>
+                <h3>분석에 실패하였습니다</h3>
+                <p id="error-message">Gemini API 키가 올바르지 않거나 네트워크 연결이 불안정합니다. 설정에서 API 키를 확인해 주세요.</p>
+                <button id="btn-error-retry" class="btn btn-secondary">다시 시도하기</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Bottom Panel: Stats & History -->
+      <section class="card history-section" aria-labelledby="history-heading">
+        <div class="history-header">
+          <h2 id="history-heading">
+            <i data-lucide="history"></i> 스캔 이력 및 친환경 기록
+          </h2>
+          <button id="btn-clear-history" class="btn btn-xs btn-outline">전체 삭제</button>
+        </div>
+
+        <div class="history-dashboard">
+          <div class="stats-card">
+            <div class="stat-item">
+              <span class="stat-label">총 스캔 횟수</span>
+              <span id="stat-total-scans" class="stat-val">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">예상 탄소 저감량</span>
+              <span id="stat-carbon-saved" class="stat-val text-green">0.00 kg</span>
+            </div>
+          </div>
+
+          <div class="history-list-container">
+            <p id="history-empty" class="history-empty-text">아직 스캔된 이력이 없습니다. 첫 번째 쓰레기를 스캔해 보세요!</p>
+            <ul id="history-list" class="history-list">
+              <!-- Dynamic Item Example:
+              <li class="history-item">
+                <div class="history-item-left">
+                  <span class="history-dot category-plastic"></span>
+                  <span class="history-name">생수 페트병</span>
+                  <span class="history-date">10분 전</span>
+                </div>
+                <div class="history-item-right">
+                  <span class="history-cat">플라스틱</span>
+                  <button class="btn-icon-delete"><i data-lucide="trash-2"></i></button>
+                </div>
+              </li>
+              -->
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>&copy; 2026 EcoScan. Saving the Earth one scan at a time.</p>
+    </footer>
+  </div>
+
+  <!-- API Settings Modal -->
+  <div id="api-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i data-lucide="settings"></i> Gemini API 설정</h3>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-info-text">
+          이 앱은 실시간 인공지능 분석을 위해 <strong>Google Gemini API</strong>를 사용합니다. 
+          API 키는 브라우저 로컬 스토리지에만 보존되며, 외부 백엔드로 유출되지 않고 안전하게 보관됩니다.
+        </p>
+        
+        <div class="form-group">
+          <label for="input-api-key">Gemini API Key</label>
+          <div class="input-wrapper">
+            <input type="password" id="input-api-key" placeholder="AIzaSy..." autocomplete="off">
+            <button id="btn-toggle-key-visibility" class="btn-icon-inside" title="비밀번호 보기/숨기기">
+              <i data-lucide="eye" id="icon-eye"></i>
+            </button>
+          </div>
+          <span class="helper-text">
+            API 키가 없으신가요? 
+            <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 발급받을 수 있습니다.
+          </span>
+        </div>
+
+        <div class="demo-mode-panel">
+          <div class="demo-checkbox-wrapper">
+            <input type="checkbox" id="checkbox-demo-mode">
+            <label for="checkbox-demo-mode"><strong>데모 모드 활성화</strong> (실제 API 키 없이 시뮬레이션 결과 사용)</label>
+          </div>
+          <p class="demo-info">체크 시 임의의 쓰레기 분석 데이터(플라스틱병, 종이컵, 유리병 등)가 모의로 생성되어 분석 화면을 볼 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-save-api" class="btn btn-success">저장 및 닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript -->
+  <script src="main.js"></script>
+</body>
+</html>
